@@ -1,6 +1,9 @@
 # httpbl-auth-service
 
-A microservice designed to integrate [Project Honey Pot's Http:BL](https://www.projecthoneypot.org/httpbl.php) with Nginx using the `auth_request` module. Written in Rust for performance and reliability.
+A proxy service designed to integrate [Project Honey Pot's Http:BL](https://www.projecthoneypot.org/httpbl.php) with Nginx using the `auth_request` module. Written in Rust for performance and reliability.
+
+> [!WARNING]
+> This is work in progress... It's **NOT production-ready**, **untested** and intended for **hobby use**.
 
 ## What is Http:BL?
 
@@ -145,7 +148,7 @@ In Nginx Proxy Manager, navigate to the specific Proxy Host configuration, go to
 
 ```nginx
 # Pass the real client IP to the auth service in a header.
-# Make sure this header name matches HTTPBL_CLIENT_IP_HEADER configuration.
+# Make sure this header name matches APP_CLIENT_IP_HEADER configuration.
 proxy_set_header X-Real-IP $remote_addr;
 # Or use X-Forwarded-For if Nginx is behind another proxy:
 # proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -156,7 +159,23 @@ proxy_set_header X-Real-IP $remote_addr;
 location /_httpbl_auth {
     internal;
     # proxy_pass points to your running httpbl-auth-service
-    proxy_pass http://httpbl-auth-service:8080/check-ip; # !!! REPLACE
+    proxy_pass http://httpbl-auth-service:8080/check-ip; # !!! REPLACE with your service address and port !!!
+
+    # Pass original request details if needed by the auth service (optional)
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    # Pass the client IP again if using X-Forwarded-For above
+    # proxy_set_header X-Real-IP $remote_addr;
+}
+
+# Use the auth_request directive in the main location block (e.g., '/')
+# This tells Nginx to perform a subrequest to /_httpbl_auth before processing the main request.
+auth_request /_httpbl_auth;
+
+# Optional: Customize the response for blocked requests (403 Forbidden)
+# error_page 403 = /custom_403_page.html; # Serve a custom HTML page
+# error_page 403 = @handle_blocked; # Redirect to a named location for logging/handling
+# location @handle_blocked { return 403; }
 ```
 
 ## Available HTTP Routes
