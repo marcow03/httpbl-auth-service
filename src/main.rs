@@ -26,11 +26,11 @@ async fn main() -> Result<()> {
 
     info!("Starting http:BL server on {}", config.bind_address);
 
-    let config_clone = config.clone();
+    let config_data = config.clone();
     Ok(HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(httpbl_resolver.clone()))
-            .app_data(web::Data::new(config_clone.clone()))
+            .app_data(web::Data::new(config_data.clone()))
             .service(routes::check_ip)
     })
     .bind(config.bind_address.clone())?
